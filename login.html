@@ -1,0 +1,694 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Secure Login and Registration">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
+<title>Secure Login | VOXA</title>
+
+<!-- Cloudflare Turnstile -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:
+        radial-gradient(circle at top,#26345f 0%,transparent 35%),
+        linear-gradient(135deg,#050816,#0b1024,#111936);
+    color:#fff;
+    padding:20px;
+}
+
+.container{
+    width:100%;
+    max-width:430px;
+}
+
+.logo{
+    text-align:center;
+    margin-bottom:18px;
+}
+
+.logo h1{
+    font-size:38px;
+    letter-spacing:4px;
+}
+
+.logo p{
+    color:#9da8c7;
+    font-size:13px;
+    margin-top:5px;
+}
+
+.card{
+    background:rgba(13,20,43,.94);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:22px;
+    padding:32px;
+    box-shadow:0 25px 70px rgba(0,0,0,.5);
+    backdrop-filter:blur(15px);
+}
+
+.tabs{
+    display:flex;
+    background:#080d20;
+    border-radius:12px;
+    padding:4px;
+    margin-bottom:25px;
+}
+
+.tabs button{
+    width:50%;
+    border:0;
+    padding:12px;
+    border-radius:9px;
+    background:transparent;
+    color:#8d98b8;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.tabs button.active{
+    background:#5865f2;
+    color:white;
+}
+
+.form{
+    display:none;
+}
+
+.form.active{
+    display:block;
+}
+
+h2{
+    margin-bottom:7px;
+    font-size:25px;
+}
+
+.subtitle{
+    color:#8d98b8;
+    font-size:13px;
+    margin-bottom:22px;
+}
+
+.field{
+    margin-bottom:16px;
+}
+
+label{
+    display:block;
+    margin-bottom:7px;
+    font-size:13px;
+    color:#cbd2e7;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border-radius:11px;
+    border:1px solid #293252;
+    background:#080d20;
+    color:white;
+    outline:none;
+    transition:.2s;
+}
+
+input:focus{
+    border-color:#5865f2;
+    box-shadow:0 0 0 3px rgba(88,101,242,.15);
+}
+
+.password-box{
+    position:relative;
+}
+
+.password-box input{
+    padding-right:50px;
+}
+
+.show-pass{
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    cursor:pointer;
+    color:#8d98b8;
+}
+
+.options{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:5px 0 18px;
+    font-size:12px;
+}
+
+.options label{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin:0;
+}
+
+.options input{
+    width:auto;
+}
+
+a{
+    color:#7d88ff;
+    text-decoration:none;
+}
+
+a:hover{
+    text-decoration:underline;
+}
+
+.submit{
+    width:100%;
+    padding:14px;
+    border:0;
+    border-radius:11px;
+    background:#5865f2;
+    color:#fff;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.submit:hover{
+    background:#4752c4;
+    transform:translateY(-1px);
+}
+
+.submit:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+.turnstile{
+    margin:16px 0;
+    display:flex;
+    justify-content:center;
+}
+
+.security{
+    text-align:center;
+    margin-top:20px;
+    color:#7f8aaa;
+    font-size:11px;
+}
+
+.security strong{
+    color:#8fa0ff;
+}
+
+.message{
+    display:none;
+    padding:11px;
+    border-radius:9px;
+    margin-bottom:15px;
+    font-size:13px;
+    text-align:center;
+}
+
+.message.error{
+    display:block;
+    background:rgba(255,70,70,.1);
+    color:#ff8d8d;
+    border:1px solid rgba(255,70,70,.2);
+}
+
+.message.success{
+    display:block;
+    background:rgba(50,210,130,.1);
+    color:#72e5aa;
+    border:1px solid rgba(50,210,130,.2);
+}
+
+.password-strength{
+    height:4px;
+    background:#202944;
+    border-radius:10px;
+    margin-top:7px;
+    overflow:hidden;
+}
+
+.password-strength span{
+    display:block;
+    height:100%;
+    width:0;
+    transition:.3s;
+}
+
+.terms{
+    font-size:11px;
+    color:#78839f;
+    line-height:1.5;
+    margin:14px 0;
+}
+
+@media(max-width:480px){
+    .card{
+        padding:24px 18px;
+    }
+
+    .logo h1{
+        font-size:31px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">
+        <h1>VOXA</h1>
+        <p>Connect. Chat. Share.</p>
+    </div>
+
+    <div class="card">
+
+        <div class="tabs">
+            <button id="loginTab" class="active">Login</button>
+            <button id="registerTab">Register</button>
+        </div>
+
+        <!-- LOGIN -->
+        <form id="loginForm" class="form active" autocomplete="on">
+
+            <h2>Welcome back</h2>
+            <p class="subtitle">Sign in securely to your account.</p>
+
+            <div id="loginMessage" class="message"></div>
+
+            <div class="field">
+                <label for="loginEmail">Email</label>
+                <input
+                    type="email"
+                    id="loginEmail"
+                    name="email"
+                    autocomplete="email"
+                    maxlength="254"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="loginPassword">Password</label>
+
+                <div class="password-box">
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        name="password"
+                        autocomplete="current-password"
+                        minlength="8"
+                        maxlength="128"
+                        required
+                    >
+
+                    <span
+                        class="show-pass"
+                        onclick="togglePassword('loginPassword',this)"
+                    >👁</span>
+                </div>
+            </div>
+
+            <div class="options">
+                <label>
+                    <input type="checkbox" name="remember">
+                    Remember me
+                </label>
+
+                <a href="forgot-password.html">Forgot password?</a>
+            </div>
+
+            <!-- Replace with your real Cloudflare Turnstile site key -->
+            <div class="turnstile">
+                <div
+                    class="cf-turnstile"
+                    data-sitekey="YOUR_CLOUDFLARE_TURNSTILE_SITE_KEY">
+                </div>
+            </div>
+
+            <button class="submit" type="submit">
+                🔐 Secure Login
+            </button>
+
+        </form>
+
+
+        <!-- REGISTER -->
+        <form id="registerForm" class="form" autocomplete="on">
+
+            <h2>Create account</h2>
+            <p class="subtitle">Register your secure VOXA account.</p>
+
+            <div id="registerMessage" class="message"></div>
+
+            <div class="field">
+                <label for="registerName">Full Name</label>
+
+                <input
+                    type="text"
+                    id="registerName"
+                    name="name"
+                    autocomplete="name"
+                    maxlength="100"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="registerEmail">Email</label>
+
+                <input
+                    type="email"
+                    id="registerEmail"
+                    name="email"
+                    autocomplete="email"
+                    maxlength="254"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="registerPassword">Password</label>
+
+                <div class="password-box">
+                    <input
+                        type="password"
+                        id="registerPassword"
+                        name="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="128"
+                        required
+                    >
+
+                    <span
+                        class="show-pass"
+                        onclick="togglePassword('registerPassword',this)"
+                    >👁</span>
+                </div>
+
+                <div class="password-strength">
+                    <span id="strengthBar"></span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="confirmPassword">Confirm Password</label>
+
+                <div class="password-box">
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="128"
+                        required
+                    >
+
+                    <span
+                        class="show-pass"
+                        onclick="togglePassword('confirmPassword',this)"
+                    >👁</span>
+                </div>
+            </div>
+
+            <div class="terms">
+                By creating an account, you agree to our
+                <a href="terms.html">Terms</a> and
+                <a href="privacy.html">Privacy Policy</a>.
+            </div>
+
+            <!-- Replace with your real Cloudflare Turnstile site key -->
+            <div class="turnstile">
+                <div
+                    class="cf-turnstile"
+                    data-sitekey="YOUR_CLOUDFLARE_TURNSTILE_SITE_KEY">
+                </div>
+            </div>
+
+            <button class="submit" type="submit">
+                🛡 Create Secure Account
+            </button>
+
+        </form>
+
+        <div class="security">
+            🛡 Protected with <strong>Cloudflare</strong><br>
+            Your connection is encrypted and protected.
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+
+/* ===============================
+   TAB SWITCHING
+================================ */
+
+const loginTab = document.getElementById("loginTab");
+const registerTab = document.getElementById("registerTab");
+
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+
+loginTab.addEventListener("click", () => {
+
+    loginTab.classList.add("active");
+    registerTab.classList.remove("active");
+
+    loginForm.classList.add("active");
+    registerForm.classList.remove("active");
+
+});
+
+registerTab.addEventListener("click", () => {
+
+    registerTab.classList.add("active");
+    loginTab.classList.remove("active");
+
+    registerForm.classList.add("active");
+    loginForm.classList.remove("active");
+
+});
+
+
+/* ===============================
+   PASSWORD VISIBILITY
+================================ */
+
+function togglePassword(id, icon){
+
+    const input = document.getElementById(id);
+
+    if(input.type === "password"){
+        input.type = "text";
+        icon.textContent = "🙈";
+    }else{
+        input.type = "password";
+        icon.textContent = "👁";
+    }
+
+}
+
+
+/* ===============================
+   PASSWORD STRENGTH
+================================ */
+
+const password = document.getElementById("registerPassword");
+const strengthBar = document.getElementById("strengthBar");
+
+password.addEventListener("input", () => {
+
+    const value = password.value;
+
+    let score = 0;
+
+    if(value.length >= 8) score++;
+    if(value.length >= 12) score++;
+    if(/[A-Z]/.test(value)) score++;
+    if(/[a-z]/.test(value)) score++;
+    if(/[0-9]/.test(value)) score++;
+    if(/[^A-Za-z0-9]/.test(value)) score++;
+
+    const width = Math.min(score * 16.6,100);
+
+    strengthBar.style.width = width + "%";
+
+});
+
+
+/* ===============================
+   LOGIN
+================================ */
+
+loginForm.addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const message = document.getElementById("loginMessage");
+
+    message.className = "message";
+    message.textContent = "";
+
+    const email = document.getElementById("loginEmail").value.trim();
+    const pass = document.getElementById("loginPassword").value;
+
+    if(!email || !pass){
+
+        message.className = "message error";
+        message.textContent = "Please complete all required fields.";
+        return;
+
+    }
+
+    /*
+      IMPORTANT:
+
+      Send the form to your backend here.
+
+      Example:
+
+      fetch("/api/login", {
+          method:"POST",
+          headers:{
+              "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+              email:email,
+              password:pass
+          })
+      });
+
+      Your backend MUST verify the Turnstile token.
+    */
+
+    message.className = "message success";
+    message.textContent =
+        "Login form validated. Connect this form to your secure backend.";
+
+});
+
+
+/* ===============================
+   REGISTER
+================================ */
+
+registerForm.addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const message = document.getElementById("registerMessage");
+
+    message.className = "message";
+    message.textContent = "";
+
+    const name =
+        document.getElementById("registerName").value.trim();
+
+    const email =
+        document.getElementById("registerEmail").value.trim();
+
+    const pass =
+        document.getElementById("registerPassword").value;
+
+    const confirm =
+        document.getElementById("confirmPassword").value;
+
+
+    if(!name || !email || !pass || !confirm){
+
+        message.className = "message error";
+        message.textContent =
+            "Please complete all required fields.";
+
+        return;
+    }
+
+
+    if(pass.length < 8){
+
+        message.className = "message error";
+        message.textContent =
+            "Password must contain at least 8 characters.";
+
+        return;
+    }
+
+
+    if(pass !== confirm){
+
+        message.className = "message error";
+        message.textContent =
+            "Passwords do not match.";
+
+        return;
+    }
+
+
+    /*
+      IMPORTANT:
+
+      Send registration information to your backend.
+
+      NEVER store passwords directly in localStorage
+      or inside this HTML file.
+
+      The backend should hash passwords using a
+      strong password-hashing algorithm such as Argon2id
+      or bcrypt.
+    */
+
+
+    message.className = "message success";
+    message.textContent =
+        "Registration form validated. Connect this form to your secure backend.";
+
+});
+
+
+/* ===============================
+   BASIC INPUT PROTECTION
+================================ */
+
+document.querySelectorAll("input").forEach(input => {
+
+    input.addEventListener("paste", () => {
+        /*
+          Pasting passwords is intentionally allowed.
+          Do not disable it because password managers
+          often use paste/autofill.
+        */
+    });
+
+});
+
+</script>
+
+</body>
+</html>
+```
